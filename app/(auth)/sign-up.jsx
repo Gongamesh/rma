@@ -1,62 +1,96 @@
-import { View, Text, ScrollView, Alert } from 'react-native'
-import {useState} from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import FormField from '../../components/formField'
-import CustomButton from '../../components/customButton'
-import {Link, router} from 'expo-router'
+import React, { useState } from 'react';
+import { Alert, View, Text, TextInput, TouchableOpacity, SafeAreaView, AppState } from 'react-native';
+import { supabase } from '../../lib/supabase';
+import { router, Link } from 'expo-router';
+
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh();
+  } else {
+    supabase.auth.stopAutoRefresh();
+  }
+});
 
 const SignUp = () => {
-  const [form, setForm] = useState({
-    username:'',
-    email: '',
-    password: '',
-  })
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  async function signUpWithEmail() {
+    setLoading(true);
+    const { data: { session }, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
 
-  const submit = async () => {
-    router.replace('/home')
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Sign Up Error', error.message);
+    } else {
+      if (session) {
+        router.replace('/home');
+      } else {
+        Alert.alert('Please check your inbox for email verification!');
+      }
+    }
   }
 
   return (
-    <SafeAreaView className="bg-primary h-full">
-      <ScrollView>
-        <View className="w-full justify-center min-h-[85vh] px-4 my-6">
-          <Text className="text-2xl text-white font-semibold">
-            Sign up to Book Follower
+    <SafeAreaView className="bg-primary h-full p-4">
+      <View className="flex-1 justify-center">
+        <View className="w-full max-w-md mx-auto">
+          <Text className="text-white text-2xl font-semibold mb-6 text-center">
+            Sign Up
           </Text>
 
-          <FormField 
-            title="Email"
-            value={form.email}
-            handleChangeText={(e) => setForm({ ...form, email: e})}
-            otherStyles="mt-7"
-            keyboardType="email-adress"
-          />
-          <FormField 
-            title="Password"
-            value={form.password}
-            handleChangeText={(e) => setForm({ ...form, password: e})}
-            otherStyles="mt-7"
-          />
+          <View className="mb-4">
+            <Text className="text-lightGray text-base mb-2">Email</Text>
+            <View className="border-2 border-lightGray bg-lightGray rounded-xl">
+              <TextInput
+                style={{ paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#2C3E50' }}
+                value={email}
+                placeholder="email@address.com"
+                placeholderTextColor="#BDC3C7"
+                autoCapitalize="none"
+                onChangeText={(text) => setEmail(text)}
+              />
+            </View>
+          </View>
 
-          <CustomButton 
-            title="Sign Up"
-            handlePress={submit}
-            containerStyles="mt-7"
-            isLoading={isSubmitting}
-          />
+          <View className="mb-6">
+            <Text className="text-lightGray text-base mb-2">Password</Text>
+            <View className="border-2 border-lightGray bg-lightGray rounded-xl">
+              <TextInput
+                style={{ paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, color: '#2C3E50' }}
+                value={password}
+                placeholder="Password"
+                placeholderTextColor="#BDC3C7"
+                secureTextEntry={true}
+                autoCapitalize="none"
+                onChangeText={(text) => setPassword(text)}
+              />
+            </View>
+          </View>
 
-          <View className="justify-center pt-5 flex-row gap-2">
-            <Text className="text-lg text-lightGray">
-              Have an account already?
+          <TouchableOpacity
+            className="bg-accent p-3 rounded-lg flex-row justify-center items-center"
+            onPress={() => signUpWithEmail()}
+            disabled={loading}
+          >
+            <Text className="text-white text-lg font-semibold">{loading ? 'Signing Up...' : 'Sign Up'}</Text>
+          </TouchableOpacity>
+
+          <View className="mt-6">
+            <Text className="text-white text-center">
+              Already have an account?{' '}
+              <Link href='/sign-in' className='text-lightGray font-semibold'>Sign In</Link>
             </Text>
-            <Link href='/sign-in' className='text-lg font-semibold text-dark'>Sign In</Link>
           </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default SignUp
+export default SignUp;
